@@ -1,0 +1,73 @@
+name: Daily Kerala Weather Forecast
+
+on:
+  schedule:
+    #  Runs at 18:30 UTC = 00:00 IST (midnight India time)
+    - cron: '30 18 * * *'
+  workflow_dispatch:   # Allows you to click "Run workflow" manually from GitHub UI
+
+jobs:
+  forecast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360   # 6-hour safety cap
+
+    steps:
+      # ── 1. Checkout your repo ───────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── 2. Set up Python ────────────────────────────────────────────────
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # ── 3. Cache pip packages (speeds up re-runs a lot) ─────────────────
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      # ── 4. Install dependencies ─────────────────────────────────────────
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # ── 5. Run the forecast script ──────────────────────────────────────
+      - name: Run weather forecast
+        run: python forecast.py
+
+      # ── 6. Upload all output files as GitHub Actions artifacts ──────────
+      #       Go to: Actions → Latest Run → Artifacts → download zip
+      - name: Upload forecast outputs
+        uses: actions/upload-artifact@v4
+        with:
+          name: forecast-${{ github.run_number }}-${{ github.run_id }}
+          path: |
+            daily_forecast_365days.csv
+            monthly_forecast_summary.csv
+            forecast_temperature.png
+            forecast_humidity.png
+            forecast_pressure.png
+            forecast_precipitation.png
+            historical_overview.png
+          retention-days: 90   # keep outputs for 90 days
+
+      # ── 7. (Optional) Commit CSVs back to the repo ──────────────────────
+      #       Uncomment this block if you want results saved in your repo
+      #       under a "results/" folder, viewable on GitHub directly.
+      #
+      # - name: Commit results to repo
+      #   run: |
+      #     mkdir -p results
+      #     cp daily_forecast_365days.csv results/
+      #     cp monthly_forecast_summary.csv results/
+      #     git config user.name "github-actions[bot]"
+      #     git config user.email "github-actions[bot]@users.noreply.github.com"
+      #     git add results/
+      #     git diff --staged --quiet || git commit -m "🌤️ Auto forecast $(date +'%Y-%m-%d')"
+      #     git push
