@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Jupyter / Colab notebooks (optional — remove if you want to keep them)
+*.ipynb
+.ipynb_checkpoints/
+
+# Generated output files (stored as GitHub Actions artifacts instead)
+daily_forecast_365days.csv
+monthly_forecast_summary.csv
+forecast_temperature.png
+forecast_humidity.png
+forecast_pressure.png
+forecast_precipitation.png
+historical_overview.png
+
+# Saved models (large — don't commit)
+saved_models/
+
+# Cache
+.cache/
+*.cache
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
