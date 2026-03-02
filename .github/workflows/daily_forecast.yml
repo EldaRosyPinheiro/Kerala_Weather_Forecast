@@ -37,6 +37,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # ── 5. Install CmdStan (required by Prophet) ────────────────────────
+      - name: Install CmdStan
+        run: python -c "import cmdstanpy; cmdstanpy.install_cmdstan()"
+
       # ── 5. Run the forecast script ──────────────────────────────────────
       - name: Run weather forecast
         run: python forecast.py
