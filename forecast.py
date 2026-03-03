@@ -909,3 +909,88 @@ for f in ["daily_forecast_365days.csv", "monthly_forecast_summary.csv",
           "historical_overview.png"]:
     exists = "✅" if os.path.exists(f) else "❌"
     print(f"   {exists} {f}")
+# ─────────────────────────────────────────────────────────────
+#  STEP 16 — WRITE TO FIREBASE REALTIME DATABASE
+# ─────────────────────────────────────────────────────────────
+print("\n🔥 Writing data to Firebase...")
+
+import firebase_admin
+from firebase_admin import credentials, db as firebase_db
+
+try:
+    # ── Service account for weatherdatas project ───────────────
+    # Get this JSON from Firebase Console:
+    # weatherdatas project → Project Settings → Service Accounts → Generate New Private Key
+    service_account_info = {
+        "type": "service_account",
+      "project_id": "weatherdatas",
+      "private_key_id": "0e3f553475192d1497d75e489b90c431525f28cc",
+      "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDQ8FEjyW0OgXiB\nKKVz5kuBYizHkvnQYz3GyZmtGuOusWvbkaOO/eXdMhCgDbwAPy96ixi3ou0JRBGK\n/YgB+YQNE+kjTq6tI7BcBK5ELZ5rSTB/dJoFr4Q4aa1zkqyMEnQC3K/Z1vhJUrNx\nMAaBG1vTXkoBwDCMiCFGhc7jIoccn7KrTQv5iMxa5fat5AVEDyoab1hxG+IyHVlo\nku3s6aTRZT5B68D9tHd/wGk1A2+Eh4ygRCRAeyDlfYZbRqqeeFmJKCCaksFI4Wc4\nk/fKX+slO1tatirOH3mzp5s7we91A7IA0rui/7hRPvlbxKZOFTaROBd8ukHlFm+r\nOrSTwewTAgMBAAECggEAVjlOatPVnx5cAgUpnlZEA51luGiVkmNaG56XvkGyAyYx\nyhdkpX5u7WUbSknQs1Nf/xTG+wWQB3phOPgeuB3l2lXEqO7wFAB958OAvR8MWN8H\n1hli9IS1rmgiDedSMK3u1T2Ijn/xz6SC6+tzS7VkJCqtpOJQxrXo8YcH1WEq2+rm\nXNdVnKOkrIA+U6X9Lnhcn3ipWQQ6IxChEnpsl4yWjME85G6lKxhq+lyVKO/+8z7S\nPPkk5xRrBnTNyZQ7ebKAWfobGI+Q0SJg9pBWaCn+xXXLG2/AcXFxw1OjejTZfV4+\nlm87ElQprwK26+1ppnVHvXKTNMyLWDWuf5WJOfLbjQKBgQD14Yej24hofhCurB3z\nM/tMnQTkS1aOmXYPyEVcHsfV4MT4hgmKt2wtXkf5M00liP7Cfv/qUu4N5f8LAsDn\nba/5sa7dNvcca4NH0CGDKrUKgX6xDLuE2oWKTLF3tbqcNsfFyixWu6oiPCkBMnS4\nzopYp2FMtZGnJzqmrQWA5ohkvQKBgQDZiZVf010H78/y9wNdv+PTpbellZYe2MyB\nOJDImyw0jwKTROpvxUfUbdBqKVor6IUu8JYeVXN/Up85u1oXvMJalXO3Oz2ei2nK\n8pbD/zQ6Sb4qNwHxTNHZ0ECSpBB7MLhFlKFVs5HhrpIC1RlVpNjFYaCHjNuoZeK5\n42MMyaTpDwKBgE40vrzafcemmU3Fhv0tAng61Sx73fsbSpb4fz8utycLB/t4Pp61\nep3vh/r2W0peCZH5bRKt7/PRvM5WwN6bX8aOwmywJ+cNN0NnKtGaitzdlVthDl/S\nVXlIrYXC8qjvL5l0lae8pv+enPg5gTCq2QwbqPIKKlq9OoV7MO3v5WANAoGBALG8\nUclrfjU/4N2YqK1uXQzN91BY+cDWTbC+sLzW27VNq0L8KbeMrnWIC6LRipUZc8e4\nVk8ObkF3FhUrWB7Q4NL2DQeGZYAmVBe3QSt+VgPRwIfpTbMDmuml1zx4w+aDFevz\n1iWZg/Wqli2uQvbQqzQJ4gkeM1JRfH94o7MNBapNAoGARLNTeBUKGVhjHR9DGhd4\noZ44I715zXEFZlZMyWN9oHAtOSiPq0e13JfFyE5C3anTNZ6GxjYOlUNONLtxd/Q4\nnmNVyxsTW1MJt6hxP6wCMUqyYuEgofuTkGrTTbZwS3Bg1NDS9HRwfZYi2XWzMYS9\nf8/shvCXodUIqtf1V+hu2MQ=\n-----END PRIVATE KEY-----\n",
+      "client_email": "firebase-adminsdk-fbsvc@weatherdatas.iam.gserviceaccount.com",
+      "client_id": "105553433186564588809",
+      "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+      "token_uri": "https://oauth2.googleapis.com/token",
+      "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+      "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-fbsvc%40weatherdatas.iam.gserviceaccount.com",
+ 
+    }
+
+    # ── Init Firebase (only once per run) ──────────────────────
+    if not firebase_admin._apps:
+        cred = credentials.Certificate(service_account_info)
+        firebase_admin.initialize_app(cred, {
+            "databaseURL": "https://weatherdatas-default-rtdb.asia-southeast1.firebasedatabase.app"
+        })
+
+    # ── 1. Write future forecast → /weather/forecast ──────────
+    print("   Writing future forecast (365 days)...")
+    forecast_payload = {}
+    for date, row in results.iterrows():
+        date_str = date.strftime("%Y-%m-%d")
+        forecast_payload[date_str] = {
+            "temp"    : float(round(row["avg_temp"], 2)),
+            "tempmax" : float(round(row["max_temp"], 2)),
+            "tempmin" : float(round(row["min_temp"], 2)),
+            "humidity": float(round(row["humidity"], 2)),
+            "pressure": float(round(row["pressure"], 2)),
+            "precip"  : float(round(row["precip"],   2)),
+        }
+    firebase_db.reference("/weather/forecast").set(forecast_payload)
+    print(f"   ✅ Forecast written: {len(forecast_payload)} days")
+
+    # ── 2. Write historical data → /weather/data ──────────────
+    print("   Writing historical data (last 2 years)...")
+    two_years_ago = pd.Timestamp.today() - pd.DateOffset(years=2)
+    df_recent     = df[df.index >= two_years_ago]
+    historical_payload = {}
+    for date, row in df_recent.iterrows():
+        date_str = date.strftime("%Y-%m-%d")
+        historical_payload[date_str] = {
+            "temp"    : float(round(row["temp"],     2)),
+            "tempmax" : float(round(row["tempmax"],  2)),
+            "tempmin" : float(round(row["tempmin"],  2)),
+            "humidity": float(round(row["humidity"], 2)),
+            "pressure": float(round(row["pressure"], 2)),
+            "precip"  : float(round(row["precip"],   2)),
+        }
+    firebase_db.reference("/weather/data").set(historical_payload)
+    print(f"   ✅ Historical written: {len(historical_payload)} days")
+
+    # ── 3. Write metadata → /weather/meta ─────────────────────
+    firebase_db.reference("/weather/meta").set({
+        "last_updated"         : pd.Timestamp.today().strftime("%Y-%m-%d %H:%M:%S"),
+        "forecast_start"       : results.index[0].strftime("%Y-%m-%d"),
+        "forecast_end"         : results.index[-1].strftime("%Y-%m-%d"),
+        "historical_start"     : df_recent.index[0].strftime("%Y-%m-%d"),
+        "historical_end"       : df_recent.index[-1].strftime("%Y-%m-%d"),
+        "total_forecast_days"  : len(forecast_payload),
+        "total_historical_days": len(historical_payload),
+        "nwp_available"        : bool(NWP_AVAILABLE),
+        "location"             : LOCATION_NAME,
+    })
+    print("   ✅ Metadata written")
+    print("\n🎉 Firebase write complete!")
+
+except Exception as e:
+    print(f"\n❌ Firebase write failed: {e}")
+    print("   CSV files still saved as artifacts.")
